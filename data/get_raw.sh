@@ -24,8 +24,8 @@ else
     echo "Data already downloaded"
 fi
 
-if [[ ! -f $file ]]; then
-    unzstd "$raw_dir/$filename.zst"
-else
-    echo "Data already uncompressed"
-fi
+#if [[ ! -f $file ]]; then
+#    unzstd "$raw_dir/$filename.zst"
+#else
+#    echo "Data already uncompressed"
+#fi
