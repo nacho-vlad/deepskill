@@ -14,7 +14,7 @@ url="https://database.lichess.org/standard/lichess_db_standard_rated_$date.pgn.z
 filename="lichess_db_standard_rated_$date.pgn"
 
 utils_dir=$(dirname "$0")
-raw_dir="..$utils_dir/data/raw"
+raw_dir="$utils_dir/../data/raw"
 
 file="$raw_dir/$filename"
 
