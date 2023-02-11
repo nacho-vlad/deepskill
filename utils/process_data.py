@@ -6,8 +6,7 @@ import io
 from pathlib import Path
 
 os.chdir(os.path.abspath(os.path.dirname(__file__) ))
-
-directory = "raw"
+os.chdir("../data")
 
 files = list(
     filter(
@@ -34,7 +33,7 @@ for filename in files:
         encoding='utf-8')
     print(pgn)
         
-    csv_filename = Path(filename).stem + ".csv"
+    csv_filename = filename.rstrip(".png.zst") + ".csv"
     csv_file = open(f"processed/{csv_filename}", "w", newline="")
     
     fieldnames = ["Event", "White", "Black", "Result", "BlackElo", "WhiteElo", "BlackRatingDiff", "WhiteRatingDiff", "Opening", "Termination", "TimeControl", "UTCDate", "UTCTime"]
@@ -45,7 +44,8 @@ for filename in files:
     game_count = 1
     game = chess.pgn.read_game(pgn)
     while game:
-        print(f"Game number: {game_count}")
+        if game_count % 1000 == 0:
+            print(f"Game number: {game_count}")
         writer.writerow(game.headers)
         game = chess.pgn.read_game(pgn)
         game_count += 1
