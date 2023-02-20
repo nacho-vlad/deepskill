@@ -1,6 +1,8 @@
 import argparse
 from datetime import datetime
 import pandas as pd
+import numpy as np
+import torch as pt
 from pathlib import Path
 
 parser = argparse.ArgumentParser(description='Prepare input data for a specific month.')
@@ -9,22 +11,46 @@ parser.add_argument('month', help='the months to prepare')
 args = parser.parse_args()
 
 file_path = Path(__file__).parent
-file_path = file_path.parent / "data" / "processed"
+csv_path = file_path.parent / "data" / "processed"
+save_path = file_path.parent / "tgl" / "DATA" / "LICHESS"
+save_path.mkdir(parents = True, exist_ok = True)
 
 def prepare_tensor(df):
     
     lst = df.values.tolist()
-    print(lst)
     
-    def convert_result_to_int(result):
+    def convert_result(result):
         return {
             "0-1": 0,
             "1-0": 1,
             "1/2-1/2": 2,
         }[result]
     
+    def time_control_normalized(tc):
+        if tc == '-':
+            return 2.0
+        return int(tc.split("+")[0]) / 1200
+    
+    def time_control_inc_normalized(tc):
+        if tc == '-':
+            return 0.0
+        return int(tc.split("+")[1]) / 10
+    
+    lst = list(map(lambda l: 
+        [convert_result(l[0]), 
+         time_control_normalized(l[1]), 
+         time_control_inc_normalized(l[1])],
+        lst))
+    
+    arr = np.array(lst)
+    
+    time_control = pt.from_numpy(arr[:, 1:])
+    one_hot_results = pt.nn.functional.one_hot(pt.from_numpy(arr[:, 0]).to(pt.int64))
+    tensor = pt.cat((one_hot_results, time_control), 1)
+    pt.save(tensor, save_path / "edge_features.pt")
+    print(tensor.size())
 
-for file in file_path.glob('*' + args.month + '*'):
+def prepare_input(file):
     df = pd.read_csv(file, usecols = ["Black", "White","UTCDate", "UTCTime", "Result", "TimeControl"])
     
     df["time"] = df["UTCDate"] + " " + df["UTCTime"]
@@ -58,7 +84,12 @@ for file in file_path.glob('*' + args.month + '*'):
     df["ext_roll"].iloc[p50:p75] = 1
     df["ext_roll"].iloc[p75:p100] = 2
     
+    df.to_csv(save_path / "edges.csv")
     print(df)
+    
+file = list(csv_path.glob('*' + args.month + '*'))[0]
+print(file)
+prepare_input(file)
     
     
     
