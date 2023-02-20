@@ -81,7 +81,7 @@ class MailBox():
                 perm = torch.arange(inv.size(0), dtype=inv.dtype, device=inv.device)
                 perm = inv.new_empty(uni.size(0)).scatter_(0, inv, perm)
                 nid = nid[perm]
-                mail = mail[perm]
+                mail = mail[perm].float()
                 mail_ts = mail_ts[perm]
                 if self.memory_param['mail_combine'] == 'last':
                     self.mailbox[nid.long(), self.next_mail_pos[nid.long()]] = mail
