@@ -1,4 +1,5 @@
 import argparse
+import pickle
 from datetime import datetime
 import pandas as pd
 import numpy as np
@@ -15,8 +16,46 @@ csv_path = file_path.parent / "data" / "processed"
 save_path = file_path.parent / "tgl" / "DATA" / "LICHESS"
 save_path.mkdir(parents = True, exist_ok = True)
 
-def prepare_tensor(df):
+"""
+Dict that maps player code to:
+Name, Elo, MatchCount
+"""
+def compute_player_statistics(df, codes, players):
     
+    df = df[df.WhiteElo != '?']
+    df = df[df.BlackElo != '?']
+    
+    name_to_code = {name:code for (name, code) in enumerate(players)}    
+    
+    grouped_white = df.groupby('White')
+    grouped_black = df.groupby('Black')
+    
+    match_count = grouped_white.size().add(grouped_black.size(), fill_value=0).astype(int)
+    
+    elo = pd.concat([grouped_white['WhiteElo'].last(), grouped_black['BlackElo'].last()], axis = 1).fillna(0)
+    elo = elo.astype(int)
+    elo = elo[['WhiteElo', 'BlackElo']].apply(max, axis = 1)
+    
+    code_to_stats = []
+    for i in range(len(players)):
+        stats = {}
+        name = players[i]
+        
+        stats['name'] = name
+        
+        try:
+            stats['matches'] = match_count[name]
+            stats['elo'] = elo[name]
+        except:
+            stats['matches'] = 0
+            stats['elo'] = 0
+        code_to_stats.append(stats)
+    
+    with open(save_path / 'stats.pkl', 'wb') as f:
+        pickle.dump(code_to_stats, f)
+    
+    
+def prepare_tensor(df):
     lst = df.values.tolist()
     
     def convert_result(result):
@@ -51,7 +90,7 @@ def prepare_tensor(df):
     print(tensor.size())
 
 def prepare_input(file):
-    df = pd.read_csv(file, usecols = ["Black", "White","UTCDate", "UTCTime", "Result", "TimeControl"])
+    df = pd.read_csv(file, usecols = ["Event", "Black", "White","BlackElo", "WhiteElo", "UTCDate", "UTCTime", "Result", "TimeControl"])
     
     df["time"] = df["UTCDate"] + " " + df["UTCTime"]
     df = df.drop(labels = ["UTCDate", "UTCTime"], axis = 1);
@@ -59,15 +98,16 @@ def prepare_input(file):
     
     df.sort_values(by = "time", inplace = True)
     df.reset_index(drop = True, inplace = True)
-
+    
     prepare_tensor(df[["Result", "TimeControl"]])
     df = df.drop(labels = ["Result", "TimeControl"], axis = 1)
     
     players = pd.concat([df['White'], df['Black']])
     codes, uniques = pd.factorize(players)
     matches = len(codes) // 2
-    
-    df = df.drop(labels = ["Black", "White"], axis = 1)
+
+    compute_player_statistics(df, codes, uniques)
+    df = df.drop(labels = ["Event", "Black", "White", "BlackElo", "WhiteElo"], axis = 1)
     
     df["src"] = codes[:matches]
     df["dst"] = codes[matches:]
