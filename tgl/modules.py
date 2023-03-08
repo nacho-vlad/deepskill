@@ -5,7 +5,7 @@ from layers import *
 
 class GeneralModel(torch.nn.Module):
 
-    def __init__(self, dim_node, dim_edge, sample_param, memory_param, gnn_param, train_param, combined=False):
+    def __init__(self, dim_node, dim_edge, sample_param, memory_param, gnn_param, train_param, combined=False, edge_feats=None):
         super(GeneralModel, self).__init__()
         self.dim_node = dim_node
         self.dim_node_input = dim_node
@@ -44,8 +44,10 @@ class GeneralModel(torch.nn.Module):
         self.edge_predictor = EdgePredictor(gnn_param['dim_out'])
         if 'combine' in gnn_param and gnn_param['combine'] == 'rnn':
             self.combiner = torch.nn.RNN(gnn_param['dim_out'], gnn_param['dim_out'])
+        if edge_feats:
+            self.edge_classifier = EdgeClassificationModel(gnn_param['dim_out'] * 2 + edge_feats, 20, 3)
     
-    def forward(self, mfgs, neg_samples=1):
+    def forward(self, mfgs, neg_samples=1, edge_feats = None):
         if self.memory_param['type'] == 'node':
             self.memory_updater(mfgs[0])
         out = list()
@@ -63,6 +65,13 @@ class GeneralModel(torch.nn.Module):
         else:
             out = torch.stack(out, dim=0)
             out = self.combiner(out)[0][-1, :, :]
+        if self.edge_classifier:
+            num = len(out)
+            src = out[:num//2]
+            dst = out[num//2:]
+            emb = torch.cat((src, dst, edge_feats), 1)
+            return self.edge_classifier(out)
+        
         return self.edge_predictor(out, neg_samples=neg_samples)
 
     def get_emb(self, mfgs):
@@ -102,12 +111,11 @@ class EdgeClassificationModel(torch.nn.Module):
     
     def __init__(self, dim_in, dim_hid, num_class):
         super(EdgeClassificationModel, self).__init__()
-        self.fc1 = torch.nn.Linear(dim_in, dim_hid)
+        self.fc1 = torch.nn.Linear(dim_in * 2, dim_hid)
         self.fc2 = torch.nn.Linear(dim_hid, num_class)
     
     def forward(self, x):
         x = self.fc1(x)
         x = torch.nn.functional.relu(x)
         x = self.fc2(x)
-        x = torch.nn.functional.softmax(x)
         return x
