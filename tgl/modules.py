@@ -65,12 +65,12 @@ class GeneralModel(torch.nn.Module):
         else:
             out = torch.stack(out, dim=0)
             out = self.combiner(out)[0][-1, :, :]
-        if self.edge_classifier:
+        if edge_feats is not None:
             num = len(out)
             src = out[:num//2]
             dst = out[num//2:]
             emb = torch.cat((src, dst, edge_feats), 1)
-            return self.edge_classifier(out)
+            return self.edge_classifier(emb.float())
         
         return self.edge_predictor(out, neg_samples=neg_samples)
 
@@ -111,7 +111,7 @@ class EdgeClassificationModel(torch.nn.Module):
     
     def __init__(self, dim_in, dim_hid, num_class):
         super(EdgeClassificationModel, self).__init__()
-        self.fc1 = torch.nn.Linear(dim_in * 2, dim_hid)
+        self.fc1 = torch.nn.Linear(dim_in, dim_hid)
         self.fc2 = torch.nn.Linear(dim_hid, num_class)
     
     def forward(self, x):
