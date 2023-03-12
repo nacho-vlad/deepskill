@@ -18,7 +18,7 @@ import numpy as np
 from modules import *
 from sampler import *
 from utils import *
-from sklearn.metrics import average_precision_score, roc_auc_score
+from sklearn.metrics import roc_auc_score, recall_score, precision_score, classification_report
 
 def set_seed(seed):
     random.seed(seed)
@@ -34,14 +34,16 @@ sample_param, memory_param, gnn_param, train_param = parse_config(args.config)
 train_edge_end = df[df['ext_roll'].gt(0)].index[0]
 val_edge_end = df[df['ext_roll'].gt(1)].index[0]
 
+class_weights = torch.ones(3) - edge_feats[:train_edge_end, 0:3].mean(dim = 0)
+
 gnn_dim_node = 0 if node_feats is None else node_feats.shape[1]
 gnn_dim_edge = 0 if edge_feats is None else edge_feats.shape[1]
 combine_first = False
 if 'combine_neighs' in train_param and train_param['combine_neighs']:
     combine_first = True
-model = GeneralModel(gnn_dim_node, gnn_dim_edge, sample_param, memory_param, gnn_param, train_param, combined=combine_first, edge_feats = 5).cuda()
+model = GeneralModel(gnn_dim_node, gnn_dim_edge, sample_param, memory_param, gnn_param, train_param, combined=combine_first, edge_feats = 2).cuda()
 mailbox = MailBox(memory_param, g['indptr'].shape[0] - 1, gnn_dim_edge) if memory_param['type'] != 'none' else None
-criterion = torch.nn.CrossEntropyLoss()
+criterion = torch.nn.CrossEntropyLoss(weight = class_weights.cuda())
 optimizer = torch.optim.Adam(model.parameters(), lr=train_param['lr'])
 if 'all_on_gpu' in train_param and train_param['all_on_gpu']:
     if node_feats is not None:
@@ -69,6 +71,8 @@ def eval(mode='val'):
         eval_df = df[val_edge_end:]
     elif mode == 'train':
         eval_df = df[:train_edge_end]
+    y_pred = torch.empty(len(eval_df), 3)
+    y_true = torch.empty(len(eval_df))
     with torch.no_grad():
         total_loss = 0
         for _, rows in eval_df.groupby(eval_df.index // train_param['batch_size']):
@@ -87,12 +91,14 @@ def eval(mode='val'):
             
             edge_f = torch.index_select(edge_feats, 0, torch.tensor(rows.index.values).cuda())
             
-            pred = model(mfgs, neg_samples = 0, edge_feats = edge_f)
+            start_idx = rows.index.values[0] - eval_df.index.values[0]
+            end_idx = rows.index.values[-1] + 1 - eval_df.index.values[0]
+            
+            pred = model(mfgs, neg_samples = 0, edge_feats = edge_f[:, 3:])
             total_loss += criterion(pred, edge_f[:, 0:3])
-            y_pred = pred.softmax(dim = 1).cpu()
-            y_true = edge_f[:, 0:3].cpu()
-            aps.append(average_precision_score(y_true, y_pred))
-            aucs_mrrs.append(roc_auc_score(y_true, y_pred))
+            
+            y_pred[start_idx:end_idx, :] = pred.softmax(dim = 1).cpu()
+            y_true[start_idx:end_idx] = edge_f[:, 0:3].argmax(dim = 1).cpu()
             if mailbox is not None:
                 eid = rows['Unnamed: 0'].values
                 mem_edge_feats = edge_feats[eid] if edge_feats is not None else None
@@ -103,9 +109,11 @@ def eval(mode='val'):
                 mailbox.update_memory(model.memory_updater.last_updated_nid, model.memory_updater.last_updated_memory, root_nodes, model.memory_updater.last_updated_ts, neg_samples= 0)
         if mode == 'val':
             val_losses.append(float(total_loss))
-    ap = float(torch.tensor(aps).mean())
-    auc_mrr = float(torch.tensor(aucs_mrrs).mean())
-    return ap, auc_mrr
+    if mode == 'test':
+        return classification_report(y_true, y_pred.argmax(dim = 1), target_names = ['White', 'Black', 'Draw'], zero_division = 0)
+    ap = precision_score(y_true, y_pred.argmax(dim = 1), average = 'macro', zero_division = 0, labels = [0, 1])
+    auc = roc_auc_score(y_true, y_pred, multi_class = 'ovr')
+    return ap, auc
 
 if not os.path.isdir('models'):
     os.mkdir('models')
@@ -165,7 +173,7 @@ for e in range(train_param['epoch']):
         
         edge_f = torch.index_select(edge_feats, 0, torch.tensor(rows.index.values).cuda())
         
-        pred = model(mfgs, neg_samples = 0, edge_feats = edge_f)
+        pred = model(mfgs, neg_samples = 0, edge_feats = edge_f[:, 3:])
         loss = criterion(pred, edge_f[:, 0:3])
         total_loss += float(loss) * train_param['batch_size'] 
         loss.backward()
@@ -199,8 +207,4 @@ if mailbox is not None:
     model.memory_updater.last_updated_nid = None
     eval('train')
     eval('val')
-ap, auc = eval('test')
-if args.eval_neg_samples > 1:
-    print('\ttest AP:{:4f}  test MRR:{:4f}'.format(ap, auc))
-else:
-    print('\ttest AP:{:4f}  test AUC:{:4f}'.format(ap, auc))
+print(eval('test'))

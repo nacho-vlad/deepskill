@@ -9,23 +9,23 @@ sampling:
     num_thread: 32
 memory: 
   - type: 'node'
-    dim_time: 100
+    dim_time: 10
     deliver_to: 'self'
     mail_combine: 'last'
     memory_update: 'gru'
     mailbox_size: 1
     combine_node_feature: True
-    dim_out: 100
+    dim_out: 10
 gnn:
   - arch: 'transformer_attention'
     layer: 1
     att_head: 2
-    dim_time: 100
-    dim_out: 100
+    dim_time: 10
+    dim_out: 10
 train:
   - epoch: 100
-    batch_size: 600
-    # reorder: 16
+    batch_size: 300
+    reorder: 16
     lr: 0.0001
     dropout: 0.2
     att_dropout: 0.2

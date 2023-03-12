@@ -9,7 +9,7 @@ from utils import *
 
 class TemporalGraphModel:
 
-    def __init__(self, data: str, config: str, stored_model: str):        
+    def __init__(self, data: str, config: str, stored_model: str, supervised = False):
         node_feats, edge_feats = load_feat(data)
         g, df = load_graph(data)
         sample_param, memory_param, gnn_param, train_param = parse_config(config)
@@ -23,7 +23,8 @@ class TemporalGraphModel:
                     gnn_dim_node, gnn_dim_edge, 
                     sample_param, memory_param, 
                     gnn_param, train_param, 
-                    combined=combine_first
+                    combined=combine_first,
+                    edge_feats= 2 if supervised else None
                 ).cuda()
         mailbox = MailBox(memory_param, g['indptr'].shape[0] - 1, gnn_dim_edge) if memory_param['type'] != 'none' else None
         
@@ -33,7 +34,6 @@ class TemporalGraphModel:
                                     sample_param['num_thread'], 1, sample_param['layer'], sample_param['neighbor'],
                                     sample_param['strategy']=='recent', sample_param['prop_time'],
                                     sample_param['history'], float(sample_param['duration']))
-        neg_link_sampler = NegLinkSampler(g['indptr'].shape[0] - 1)
 
         model.load_state_dict(torch.load(stored_model))
 
@@ -56,7 +56,6 @@ class TemporalGraphModel:
         self.model = model
         self.mailbox = mailbox
         self.sampler = sampler
-        self.neg_link_sampler = neg_link_sampler
         self.processed_edge_id = 0
         self.combine_first = combine_first
         
@@ -67,14 +66,10 @@ class TemporalGraphModel:
         while self.df.time[self.processed_edge_id] < time:
             rows = self.df[self.processed_edge_id:min(self.processed_edge_id + self.train_param['batch_size'], len(self.df))]
             self.model.eval()
-            root_nodes = np.concatenate([rows.src.values, rows.dst.values, self.neg_link_sampler.sample(len(rows))]).astype(np.int32)
-            ts = np.concatenate([rows.time.values, rows.time.values, rows.time.values]).astype(np.float32)
+            root_nodes = np.concatenate([rows.src.values, rows.dst.values]).astype(np.int32)
+            ts = np.concatenate([rows.time.values, rows.time.values]).astype(np.float32)
             if self.sampler is not None:
-                if 'no_neg' in self.sample_param and self.sample_param['no_neg']:
-                    pos_root_end = root_nodes.shape[0] * 2 // 3
-                    self.sampler.sample(root_nodes[:pos_root_end], ts[:pos_root_end])
-                else:
-                    self.sampler.sample(root_nodes, ts)
+                self.sampler.sample(root_nodes, ts)
                 ret = self.sampler.get_ret()
             if self.gnn_param['arch'] != 'identity':
                 mfgs = to_dgl_blocks(ret, self.sample_param['history'])
@@ -84,15 +79,15 @@ class TemporalGraphModel:
             if self.mailbox is not None:
                 self.mailbox.prep_input_mails(mfgs[0])
             with torch.no_grad():
-                _, _ = self.model(mfgs)
+                _, _ = self.model(mfgs, neg_samples = 0)
                 if self.mailbox is not None:
                     eid = rows['Unnamed: 0'].values
                     mem_edge_feats = self.edge_feats[eid] if self.edge_feats is not None else None
                     block = None
                     if self.memory_param['deliver_to'] == 'neighbors':
                         block = to_dgl_blocks(ret, self.sample_param['history'], reverse=True)[0][0]
-                    self.mailbox.update_mailbox(self.model.memory_updater.last_updated_nid, self.model.memory_updater.last_updated_memory, root_nodes, ts, mem_edge_feats, block)
-                    self.mailbox.update_memory(self.model.memory_updater.last_updated_nid, self.model.memory_updater.last_updated_memory, root_nodes, self.model.memory_updater.last_updated_ts)
+                    self.mailbox.update_mailbox(self.model.memory_updater.last_updated_nid, self.model.memory_updater.last_updated_memory, root_nodes, ts, mem_edge_feats, block, neg_samples = 0)
+                    self.mailbox.update_memory(self.model.memory_updater.last_updated_nid, self.model.memory_updater.last_updated_memory, root_nodes, self.model.memory_updater.last_updated_ts, neg_samples = 0)
             self.processed_edge_id += self.train_param['batch_size']
             if self.processed_edge_id >= len(self.df):
                 return
