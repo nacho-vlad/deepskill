@@ -5,7 +5,7 @@ import time
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-from sampler_core import ParallelSampler, TemporalGraphBlock
+from tgl.sampler_core import ParallelSampler, TemporalGraphBlock
 
 class NegLinkSampler:
 

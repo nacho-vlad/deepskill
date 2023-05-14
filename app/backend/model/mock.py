@@ -1,4 +1,4 @@
-from model.skill import SkillRatingSystem, InvalidInput
+from app.backend.model.skill import SkillRatingSystem, InvalidInput
 
 class MockSkill(SkillRatingSystem):
     

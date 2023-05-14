@@ -1,6 +1,6 @@
 import torch
 import dgl
-from layers import TimeEncode
+from tgl.layers import TimeEncode
 from torch_scatter import scatter
 
 class MailBox():

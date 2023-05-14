@@ -1,7 +1,7 @@
 import torch
 import dgl
-from memorys import *
-from layers import *
+from tgl.memorys import *
+from tgl.layers import *
 
 class GeneralModel(torch.nn.Module):
 
