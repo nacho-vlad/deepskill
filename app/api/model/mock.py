@@ -1,6 +1,8 @@
-from model.skill import SkillRatingSystem
+from model.skill import SkillRatingSystem, InvalidInput
 
 class MockSkill(SkillRatingSystem):
+    
+    players = ["John", "Alice", "Bobby"]
     
     def __init__(self):
         self.matchups = {
@@ -11,11 +13,39 @@ class MockSkill(SkillRatingSystem):
             ("Alice", "Bobby"): (0.0, 1.0, 0.0),
             ("Bobby", "Alice"): (1.0, 0.0, 0.0),
         }
+        
+    def validate(self, white: str, black: str, tc: (int, int)):
+        
+        error = False
+        invalid = []
+        
+        if white not in self.players:
+            error = True
+            invalid.append('white')
+            pass
+        if black not in self.players:
+            error = True
+            invalid.append('black')
+            pass
+        
+        min = tc[0]
+        inc = tc[0]
+        
+        if min is None or min < 1:
+            error = True
+            invalid.append('min')
+        
+        if inc is None or inc < 0:
+            error = True
+            invalid.append('inc')
+        
+        if error:
+            raise InvalidInput(invalid)
+        
     
     def predict(self, white: str, black: str, tc: (int, int)):
         
-        if (white, black) not in self.matchups:
-            return None
+        self.validate(white, black, tc)
         
         results = self.matchups[(white, black)]
         return {

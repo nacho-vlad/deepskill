@@ -6,6 +6,50 @@
 <script>
   import 'chota';
   import BarChart from './BarChart.svelte';
+  
+  const url = "http://127.0.0.1:8000";
+  
+  let prediction = {
+    "white": 0,
+    "black": 0,
+    "draw": 0,
+  }
+  
+  let white = "";
+  let black = "";
+  let minutes = null;
+  let increment = null;
+  
+  let error = {
+    'white': '',
+    'black': '',
+    'min': '',
+    'inc': '',
+  }
+  
+  async function fetchPrediction() {
+        
+    const response = await fetch(url + `/predict?white=${white}&black=${black}&min=${minutes}&inc=${increment}`);
+    if (!response.ok) {        
+      const err = await response.json();
+      console.log(`Server returned an error: ${err.detail}`);
+      const invalid = err.detail
+      for (const element of invalid) {
+        error[element] = 'error'
+      }
+      error = error
+      
+      return;
+    }
+    
+    prediction = await response.json();
+  }
+  
+  function resetInput(input) {
+    error[input] = ''
+    error = error
+  }
+  
 </script>
 
 <div style="width:47.5%; margin:auto">
@@ -20,7 +64,8 @@
   <div class="time-control">
     <label for="Min"> Time Control </label>
     <div class="grid-container">
-      <input placeholder="Minutes" id="Min"><input placeholder="Increment" id="Inc">
+      <input bind:value={minutes} class={error['min']} on:input={()=>resetInput('min')} min=1 type="number" placeholder="Mins" id="Min">
+      <input bind:value={increment} class={error['inc']} on:input={()=>resetInput('inc')} min=0 max=60 type="number" placeholder="Inc" id="Inc">
     </div>
   </div>
   
@@ -28,22 +73,22 @@
   
     <div class="grid-item">
     <label for="White">White</label>
-    <input placeholder="Lichess Username" id="White">
+    <input bind:value={white} class={error['white']} on:input={()=>resetInput('white')} placeholder="Lichess Username" id="White">
     </div>
   
     <div class="grid-item">
     <label style="text-align: center;" for="Black">Black</label>
-    <input placeholder="Lichess Username" id="Black">
+    <input bind:value={black} class={error['black']} on:input={()=>resetInput('black')} placeholder="Lichess Username" id="Black">
     </div>
 
   </div>
   
-  <button style="width: 30%; margin:auto; display:block">Predict</button>
+  <button on:click={fetchPrediction} style="width: 30%; margin:auto; display:block">Predict</button>
   
   <h4>
     Outcome Probabilities
   </h4>
-  <BarChart class="chart" />
+  <BarChart class="chart" white={prediction["white"]} black={prediction["black"]} draw={prediction["draw"]} />
   
   <h2 style="margin-bottom:10px">
     About
@@ -108,6 +153,10 @@
     margin: auto;
     text-align:center;
     margin-top: 20px;
+  }
+  
+  .error {
+    border-color: red,
   }
 
 </style>
