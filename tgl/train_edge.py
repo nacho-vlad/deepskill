@@ -19,6 +19,7 @@ from modules import *
 from sampler import *
 from utils import *
 from sklearn.metrics import roc_auc_score, recall_score, precision_score, classification_report
+import wandb
 
 def set_seed(seed):
     random.seed(seed)
@@ -59,6 +60,20 @@ if not ('no_sample' in sample_param and sample_param['no_sample']):
                               sample_param['num_thread'], 1, sample_param['layer'], sample_param['neighbor'],
                               sample_param['strategy']=='recent', sample_param['prop_time'],
                               sample_param['history'], float(sample_param['duration']))
+
+wandb.init(
+    project="deepskill",
+    
+    config={
+        "learning_rate": train_param["lr"],
+        "architecture": args.config,
+        "dataset": args.data,
+        "epochs": train_param["epoch"],
+        "batch_size": train_param["batch_size"],
+        "reorder": train_param["reorder"],
+        "dim_emb": memory_param["dim_out"]
+    }
+)
 
 def eval(mode='val'):
     neg_samples = 1
@@ -194,6 +209,7 @@ for e in range(train_param['epoch']):
         best_e = e
         best_ap = ap
         torch.save(model.state_dict(), path_saver)
+    wandb.log({"ap": ap, "loss": loss})
     print('\ttrain loss:{:.4f}  val ap:{:4f}  val auc:{:4f}'.format(total_loss, ap, auc))
     print('\ttotal time:{:.2f}s sample time:{:.2f}s prep time:{:.2f}s'.format(time_tot, time_sample, time_prep))
 
