@@ -1,0 +1,11 @@
+[package]
+name = "pgn_to_csv"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+csv = "1.1"
+pgn-reader = "0.24"
+zstd = "0.12"

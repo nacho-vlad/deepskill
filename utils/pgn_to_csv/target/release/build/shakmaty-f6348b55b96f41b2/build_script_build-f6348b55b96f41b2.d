@@ -1,0 +1,12 @@
+/home/florinacho/deepskill/utils/pgn_to_csv/target/release/build/shakmaty-f6348b55b96f41b2/build_script_build-f6348b55b96f41b2: /home/florinacho/.cargo/registry/src/github.com-1ecc6299db9ec823/shakmaty-0.25.0/src/build.rs /home/florinacho/.cargo/registry/src/github.com-1ecc6299db9ec823/shakmaty-0.25.0/src/bitboard.rs /home/florinacho/.cargo/registry/src/github.com-1ecc6299db9ec823/shakmaty-0.25.0/src/color.rs /home/florinacho/.cargo/registry/src/github.com-1ecc6299db9ec823/shakmaty-0.25.0/src/magics.rs /home/florinacho/.cargo/registry/src/github.com-1ecc6299db9ec823/shakmaty-0.25.0/src/role.rs /home/florinacho/.cargo/registry/src/github.com-1ecc6299db9ec823/shakmaty-0.25.0/src/square.rs /home/florinacho/.cargo/registry/src/github.com-1ecc6299db9ec823/shakmaty-0.25.0/src/types.rs /home/florinacho/.cargo/registry/src/github.com-1ecc6299db9ec823/shakmaty-0.25.0/src/util.rs
+
+/home/florinacho/deepskill/utils/pgn_to_csv/target/release/build/shakmaty-f6348b55b96f41b2/build_script_build-f6348b55b96f41b2.d: /home/florinacho/.cargo/registry/src/github.com-1ecc6299db9ec823/shakmaty-0.25.0/src/build.rs /home/florinacho/.cargo/registry/src/github.com-1ecc6299db9ec823/shakmaty-0.25.0/src/bitboard.rs /home/florinacho/.cargo/registry/src/github.com-1ecc6299db9ec823/shakmaty-0.25.0/src/color.rs /home/florinacho/.cargo/registry/src/github.com-1ecc6299db9ec823/shakmaty-0.25.0/src/magics.rs /home/florinacho/.cargo/registry/src/github.com-1ecc6299db9ec823/shakmaty-0.25.0/src/role.rs /home/florinacho/.cargo/registry/src/github.com-1ecc6299db9ec823/shakmaty-0.25.0/src/square.rs /home/florinacho/.cargo/registry/src/github.com-1ecc6299db9ec823/shakmaty-0.25.0/src/types.rs /home/florinacho/.cargo/registry/src/github.com-1ecc6299db9ec823/shakmaty-0.25.0/src/util.rs
+
+/home/florinacho/.cargo/registry/src/github.com-1ecc6299db9ec823/shakmaty-0.25.0/src/build.rs:
+/home/florinacho/.cargo/registry/src/github.com-1ecc6299db9ec823/shakmaty-0.25.0/src/bitboard.rs:
+/home/florinacho/.cargo/registry/src/github.com-1ecc6299db9ec823/shakmaty-0.25.0/src/color.rs:
+/home/florinacho/.cargo/registry/src/github.com-1ecc6299db9ec823/shakmaty-0.25.0/src/magics.rs:
+/home/florinacho/.cargo/registry/src/github.com-1ecc6299db9ec823/shakmaty-0.25.0/src/role.rs:
+/home/florinacho/.cargo/registry/src/github.com-1ecc6299db9ec823/shakmaty-0.25.0/src/square.rs:
+/home/florinacho/.cargo/registry/src/github.com-1ecc6299db9ec823/shakmaty-0.25.0/src/types.rs:
+/home/florinacho/.cargo/registry/src/github.com-1ecc6299db9ec823/shakmaty-0.25.0/src/util.rs:

@@ -3,7 +3,16 @@ import os
 import csv
 import zstandard
 import io
+import re
+import argparse
 from pathlib import Path
+
+parser = argparse.ArgumentParser()
+parser.add_argument('pattern')
+args = parser.parse_args()
+
+pattern = args.pattern
+
 
 os.chdir(os.path.abspath(os.path.dirname(__file__) ))
 os.chdir("../data")
@@ -16,9 +25,7 @@ files = list(
 
 
 for filename in files:
-    if filename.endswith("lichess_db_standard_rated_2022-11.pgn.zst"):
-        continue
-    if filename.endswith("lichess_db_standard_rated_2013-06.pgn.zst"):
+    if re.search(pattern, filename) is None:
         continue
     print(filename)
 
