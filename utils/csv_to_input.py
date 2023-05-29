@@ -13,7 +13,7 @@ args = parser.parse_args()
 
 file_path = Path(__file__).parent
 csv_path = file_path.parent / "data" / "processed"
-save_path = file_path.parent / "tgl" / "DATA" / "LICHESS"
+save_path = file_path.parent / "tgl" / "DATA" / "LICHESS-" / args.month
 save_path.mkdir(parents = True, exist_ok = True)
 
 """
@@ -90,32 +90,38 @@ def prepare_tensor(df):
     print(tensor.size())
 
 def prepare_input(file):
+    print("Reading CSV...")
     df = pd.read_csv(file, usecols = ["Event", "Black", "White","BlackElo", "WhiteElo", "UTCDate", "UTCTime", "Result", "TimeControl"])
     
+    print("Processing time...")
     df["time"] = df["UTCDate"] + " " + df["UTCTime"]
     df = df.drop(labels = ["UTCDate", "UTCTime"], axis = 1);
     df["time"] = df["time"].map(lambda dt: datetime.strptime(dt, '%Y.%m.%d %H:%M:%S'))
+
+    first_time = df["time"].iloc[0]
+    df["time"] = (df["time"] - first_time).map(lambda delta: int(delta.total_seconds()))
     
-    df.sort_values(by = "time", inplace = True)
-    df.reset_index(drop = True, inplace = True)
+    # should already be sorted by time
+    #df.sort_values(by = "time", inplace = True)
+    #df.reset_index(drop = True, inplace = True)
     
+    print("Preparing tensor...")
+    df = df[df['Result'].isin(["1-0", "0-1", "1/2-1/2"])]
     prepare_tensor(df[["Result", "TimeControl"]])
     df = df.drop(labels = ["Result", "TimeControl"], axis = 1)
     
+    print("Factoring players...")
     players = pd.concat([df['White'], df['Black']])
     codes, uniques = pd.factorize(players)
     matches = len(codes) // 2
 
+    print("Computing player statistics...")
     compute_player_statistics(df, codes, uniques)
     df = df.drop(labels = ["Event", "Black", "White", "BlackElo", "WhiteElo"], axis = 1)
     
     df["src"] = codes[:matches]
     df["dst"] = codes[matches:]
-    
-    first_time = df["time"].iloc[0]
-    df["time"] = (df["time"] - first_time).map(lambda delta: int(delta.total_seconds()))
-    
-    
+        
     p50 = len(df) // 2
     p75 = len(df) * 3 // 4
     p100 = len(df)
@@ -124,6 +130,7 @@ def prepare_input(file):
     df["ext_roll"].iloc[p50:p75] = 1
     df["ext_roll"].iloc[p75:p100] = 2
     
+    print("Saving to CSV")
     df.to_csv(save_path / "edges.csv")
     print(df)
     

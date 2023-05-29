@@ -59,7 +59,7 @@ impl Visitor for CSVWriter {
     fn end_game(&mut self) {
         self.writer.write_record(None::<&[u8]>).unwrap();
         self.num_games += 1;
-        if self.num_games % 1000 == 0 {
+        if self.num_games % 100000 == 0 {
             println!("Game number: {}", self.num_games);
         }
     }
@@ -68,7 +68,7 @@ impl Visitor for CSVWriter {
 fn main() -> Result<(), io::Error> {
     let data_path = Path::new(DATA_PATH);
     let raw_path = data_path.join("raw/");
-    let processed_path = data_path.join("processed");
+    let processed_path = data_path.join("processed/");
 
     for arg in env::args().skip(1) {
         let raw_file = raw_path.join(&arg);
