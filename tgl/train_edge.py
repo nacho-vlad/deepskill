@@ -209,7 +209,7 @@ for e in range(train_param['epoch']):
         best_e = e
         best_ap = ap
         torch.save(model.state_dict(), path_saver)
-    wandb.log({"ap": ap, "loss": loss})
+    wandb.log({"ap": ap, "loss": total_loss})
     print('\ttrain loss:{:.4f}  val ap:{:4f}  val auc:{:4f}'.format(total_loss, ap, auc))
     print('\ttotal time:{:.2f}s sample time:{:.2f}s prep time:{:.2f}s'.format(time_tot, time_sample, time_prep))
 
