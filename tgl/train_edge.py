@@ -15,9 +15,9 @@ import time
 import random
 import dgl
 import numpy as np
-from modules import *
-from sampler import *
-from utils import *
+from tgl.modules import *
+from tgl.sampler import *
+from tgl.utils import *
 from sklearn.metrics import roc_auc_score, recall_score, precision_score, classification_report
 import wandb
 
@@ -42,7 +42,7 @@ gnn_dim_edge = 0 if edge_feats is None else edge_feats.shape[1]
 combine_first = False
 if 'combine_neighs' in train_param and train_param['combine_neighs']:
     combine_first = True
-model = GeneralModel(gnn_dim_node, gnn_dim_edge, sample_param, memory_param, gnn_param, train_param, combined=combine_first, edge_feats = 2).cuda()
+model = GeneralModel(gnn_dim_node, gnn_dim_edge, sample_param, memory_param, gnn_param, train_param, combined=combine_first, game_feats = 2).cuda()
 mailbox = MailBox(memory_param, g['indptr'].shape[0] - 1, gnn_dim_edge) if memory_param['type'] != 'none' else None
 criterion = torch.nn.CrossEntropyLoss(weight = class_weights.cuda())
 optimizer = torch.optim.Adam(model.parameters(), lr=train_param['lr'])
@@ -109,7 +109,7 @@ def eval(mode='val'):
             start_idx = rows.index.values[0] - eval_df.index.values[0]
             end_idx = rows.index.values[-1] + 1 - eval_df.index.values[0]
             
-            pred = model(mfgs, neg_samples = 0, edge_feats = edge_f[:, 3:])
+            pred = model(mfgs, neg_samples = 0, edge_feats = edge_f[:, 3:5])
             total_loss += criterion(pred, edge_f[:, 0:3])
             
             y_pred[start_idx:end_idx, :] = pred.softmax(dim = 1).cpu()
@@ -125,17 +125,17 @@ def eval(mode='val'):
         if mode == 'val':
             val_losses.append(float(total_loss))
     if mode == 'test':
-        return classification_report(y_true, y_pred.argmax(dim = 1), target_names = ['White', 'Black', 'Draw'], zero_division = 0)
+        return classification_report(y_true, y_pred.argmax(dim = 1), target_names = ['White', 'Black', 'Draw'], zero_division = 0, digits = 4)
     ap = precision_score(y_true, y_pred.argmax(dim = 1), average = 'macro', zero_division = 0, labels = [0, 1])
     auc = roc_auc_score(y_true, y_pred, multi_class = 'ovr')
     return ap, auc
 
-if not os.path.isdir('models'):
-    os.mkdir('models')
+if not os.path.isdir('tgl/models'):
+    os.mkdir('tgl/models')
 if args.model_name == '':
-    path_saver = 'models/{}_{}.pkl'.format(args.data, time.time())
+    path_saver = 'tgl/models/{}.pkl'.format(time.time())
 else:
-    path_saver = 'models/{}.pkl'.format(args.model_name)
+    path_saver = 'tgl/models/{}.pkl'.format(args.model_name)
 best_ap = 0
 best_e = 0
 val_losses = list()
@@ -188,7 +188,7 @@ for e in range(train_param['epoch']):
         
         edge_f = torch.index_select(edge_feats, 0, torch.tensor(rows.index.values).cuda())
         
-        pred = model(mfgs, neg_samples = 0, edge_feats = edge_f[:, 3:])
+        pred = model(mfgs, neg_samples = 0, edge_feats = edge_f[:, 3:5])
         loss = criterion(pred, edge_f[:, 0:3])
         total_loss += float(loss) * train_param['batch_size'] 
         loss.backward()

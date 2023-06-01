@@ -1,10 +1,10 @@
 import argparse
 import pickle
-from datetime import datetime
 import pandas as pd
 import numpy as np
 import torch as pt
 from pathlib import Path
+from player_statistics import sort_by_time, factor_players, clean_dataframe
 
 parser = argparse.ArgumentParser(description='Prepare input data for a specific month.')
 parser.add_argument('month', help='the months to prepare')
@@ -13,7 +13,7 @@ args = parser.parse_args()
 
 file_path = Path(__file__).parent
 csv_path = file_path.parent / "data" / "processed"
-save_path = file_path.parent / "tgl" / "DATA" / "LICHESS-" / args.month
+save_path = file_path.parent / "tgl" / "DATA" / ("LICHESS-" + args.month)
 save_path.mkdir(parents = True, exist_ok = True)    
     
 def prepare_tensor(df):
@@ -35,11 +35,16 @@ def prepare_tensor(df):
         if tc == '-':
             return 0.0
         return int(tc.split("+")[1]) / 10
+
+    def elo_standardized(elo):
+        return (int(elo) - 1500) / 400
     
     lst = list(map(lambda l: 
         [convert_result(l[0]), 
          time_control_normalized(l[1]), 
-         time_control_inc_normalized(l[1])],
+         time_control_inc_normalized(l[1]),
+         elo_standardized(l[2]),
+         elo_standardized(l[3])],
         lst))
     
     arr = np.array(lst)
@@ -50,30 +55,6 @@ def prepare_tensor(df):
     pt.save(tensor, save_path / "edge_features.pt")
     print(tensor.size())
     
-    
-def clean_dataframe(df):    
-    df = df[df['Result'].isin(["1-0", "0-1", "1/2-1/2"])]
-    df = df[df.WhiteElo != '?']
-    df = df[df.BlackElo != '?']
-    return df
-
-def sort_by_time(df):
-    df["time"] = df["UTCDate"] + " " + df["UTCTime"]
-    df = df.drop(labels = ["UTCDate", "UTCTime"], axis = 1);
-    df["time"] = df["time"].map(lambda dt: datetime.strptime(dt, '%Y.%m.%d %H:%M:%S'))
-
-    first_time = df["time"].iloc[0]
-    df["time"] = (df["time"] - first_time).map(lambda delta: int(delta.total_seconds()))
-
-    df.sort_values(by = "time", inplace = True)
-    df.reset_index(drop = True, inplace = True)
-    
-    return df    
-
-def factor_players(df):
-    players = pd.concat([df['White'], df['Black']])
-    codes, uniques = pd.factorize(players)
-    return codes, uniques    
         
 
 def prepare_input(file):
@@ -85,14 +66,14 @@ def prepare_input(file):
     df = sort_by_time(df)
     
     print("Preparing tensor...")
-    prepare_tensor(df[["Result", "TimeControl"]])
-    df = df.drop(labels = ["Result", "TimeControl"], axis = 1)
+    prepare_tensor(df[["Result", "TimeControl", "WhiteElo", "BlackElo"]])
+    df = df.drop(labels = ["WhiteElo", "BlackElo", "Result", "TimeControl"], axis = 1)
     
     print("Factoring players...")
     codes, uniques = factor_players(df)
     matches = len(codes) // 2
 
-    df = df.drop(labels = ["Event", "Black", "White", "BlackElo", "WhiteElo"], axis = 1)
+    df = df.drop(labels = ["Event", "Black", "White"], axis = 1)
     
     df["src"] = codes[:matches]
     df["dst"] = codes[matches:]
@@ -108,10 +89,7 @@ def prepare_input(file):
     print("Saving to CSV")
     df.to_csv(save_path / "edges.csv")
     print(df)
-    
+
 file = list(csv_path.glob('*' + args.month + '*'))[0]
 print(file)
 prepare_input(file)
-    
-    
-    

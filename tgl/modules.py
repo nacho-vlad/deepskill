@@ -5,7 +5,7 @@ from tgl.layers import *
 
 class GeneralModel(torch.nn.Module):
 
-    def __init__(self, dim_node, dim_edge, sample_param, memory_param, gnn_param, train_param, combined=False, edge_feats=None):
+    def __init__(self, dim_node, dim_edge, sample_param, memory_param, gnn_param, train_param, combined=False, game_feats=None):
         super(GeneralModel, self).__init__()
         self.dim_node = dim_node
         self.dim_node_input = dim_node
@@ -44,8 +44,8 @@ class GeneralModel(torch.nn.Module):
         self.edge_predictor = EdgePredictor(gnn_param['dim_out'])
         if 'combine' in gnn_param and gnn_param['combine'] == 'rnn':
             self.combiner = torch.nn.RNN(gnn_param['dim_out'], gnn_param['dim_out'])
-        if edge_feats:
-            self.edge_classifier = EdgeClassificationModel(gnn_param['dim_out'] * 2 + edge_feats, 20, 3)
+        if game_feats:
+            self.edge_classifier = EdgeClassificationModel(gnn_param['dim_out'] * 2 + game_feats, 20, 3)
     
     def forward(self, mfgs, neg_samples=1, edge_feats = None):
         if self.memory_param['type'] == 'node':

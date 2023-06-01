@@ -8,13 +8,13 @@ import numpy as np
 
 def load_feat(d, rand_de=0, rand_dn=0):
     node_feats = None
-    if os.path.exists('DATA/{}/node_features.pt'.format(d)):
-        node_feats = torch.load('DATA/{}/node_features.pt'.format(d))
+    if os.path.exists('{}/node_features.pt'.format(d)):
+        node_feats = torch.load('{}/node_features.pt'.format(d))
         if node_feats.dtype == torch.bool:
             node_feats = node_feats.type(torch.float32)
     edge_feats = None
-    if os.path.exists('DATA/{}/edge_features.pt'.format(d)):
-        edge_feats = torch.load('DATA/{}/edge_features.pt'.format(d))
+    if os.path.exists('{}/edge_features.pt'.format(d)):
+        edge_feats = torch.load('{}/edge_features.pt'.format(d))
         if edge_feats.dtype == torch.bool:
             edge_feats = edge_feats.type(torch.float32)
     if rand_de > 0:
@@ -30,8 +30,8 @@ def load_feat(d, rand_de=0, rand_dn=0):
     return node_feats, edge_feats
 
 def load_graph(d):
-    df = pd.read_csv('DATA/{}/edges.csv'.format(d))
-    g = np.load('DATA/{}/ext_full.npz'.format(d))
+    df = pd.read_csv('{}/edges.csv'.format(d))
+    g = np.load('{}/ext_full.npz'.format(d))
     return g, df
 
 def parse_config(f):
