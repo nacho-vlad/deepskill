@@ -2,10 +2,10 @@ import torch
 import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
-from memorys import MailBox
-from modules import GeneralModel
-from sampler import *
-from utils import *
+from tgl.memorys import MailBox
+from tgl.modules import GeneralModel
+from tgl.sampler import *
+from tgl.utils import *
 
 class TemporalGraphModel:
 
