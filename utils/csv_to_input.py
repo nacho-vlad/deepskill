@@ -27,20 +27,20 @@ def prepare_tensor(df):
         }[result]
     
     def time_control_normalized(tc):
-        if tc == '-':
-            return 2.0
+        if tc == '-' or tc == '':
+            return 3.0
         return int(tc.split("+")[0]) / 1200
     
     def time_control_inc_normalized(tc):
-        if tc == '-':
+        if tc == '-' or tc == '':
             return 0.0
         return int(tc.split("+")[1]) / 10
 
     def elo_standardized(elo):
         return (int(elo) - 1500) / 400
     
-    lst = list(map(lambda l: 
-        [convert_result(l[0]), 
+    lst = list(map(lambda l:
+        [convert_result(l[0]),
          time_control_normalized(l[1]), 
          time_control_inc_normalized(l[1]),
          elo_standardized(l[2]),
@@ -59,7 +59,14 @@ def prepare_tensor(df):
 
 def prepare_input(file):
     print("Reading CSV...")
-    df = pd.read_csv(file, usecols = ["Event", "Black", "White","BlackElo", "WhiteElo", "UTCDate", "UTCTime", "Result", "TimeControl"])
+    df = pd.read_csv(file, usecols = [
+        "Event", 
+        "Black", "White",
+        "BlackElo", "WhiteElo", 
+        "UTCDate", "UTCTime", 
+        "Result", 
+        "TimeControl"], 
+        keep_default_na=False)
     df = clean_dataframe(df)
     
     print("Processing time...")

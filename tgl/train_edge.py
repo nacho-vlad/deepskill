@@ -18,7 +18,7 @@ import numpy as np
 from tgl.modules import *
 from tgl.sampler import *
 from tgl.utils import *
-from sklearn.metrics import roc_auc_score, recall_score, precision_score, classification_report
+from sklearn.metrics import roc_auc_score, recall_score, precision_score, classification_report, accuracy_score
 import wandb
 
 def set_seed(seed):
@@ -70,7 +70,7 @@ wandb.init(
         "dataset": args.data,
         "epochs": train_param["epoch"],
         "batch_size": train_param["batch_size"],
-        "reorder": train_param["reorder"],
+        "reorder": train_param["reorder"] if "reorder" in train_param else 0,
         "dim_emb": memory_param["dim_out"]
     }
 )
@@ -126,9 +126,10 @@ def eval(mode='val'):
             val_losses.append(float(total_loss))
     if mode == 'test':
         return classification_report(y_true, y_pred.argmax(dim = 1), target_names = ['White', 'Black', 'Draw'], zero_division = 0, digits = 4)
+    acc = accuracy_score(y_true, y_pred.argmax(dim = 1))
     ap = precision_score(y_true, y_pred.argmax(dim = 1), average = 'macro', zero_division = 0, labels = [0, 1])
     auc = roc_auc_score(y_true, y_pred, multi_class = 'ovr')
-    return ap, auc
+    return ap, auc, acc
 
 if not os.path.isdir('tgl/models'):
     os.mkdir('tgl/models')
@@ -136,6 +137,11 @@ if args.model_name == '':
     path_saver = 'tgl/models/{}.pkl'.format(time.time())
 else:
     path_saver = 'tgl/models/{}.pkl'.format(args.model_name)
+    if os.path.isfile(path_saver):
+        print(f"Loading model {path_saver}")
+        model.load_state_dict(torch.load(path_saver))
+        path_saver = 'tgl/models/{}.pkl'.format(time.time())
+
 best_ap = 0
 best_e = 0
 val_losses = list()
@@ -204,12 +210,12 @@ for e in range(train_param['epoch']):
             mailbox.update_memory(model.memory_updater.last_updated_nid, model.memory_updater.last_updated_memory, root_nodes, model.memory_updater.last_updated_ts, neg_samples = 0)
         time_prep += time.time() - t_prep_s
         time_tot += time.time() - t_tot_s
-    ap, auc = eval('val')
+    ap, auc, acc = eval('val')
     if e > 2 and ap > best_ap:
         best_e = e
         best_ap = ap
         torch.save(model.state_dict(), path_saver)
-    wandb.log({"ap": ap, "loss": total_loss})
+    wandb.log({"ap": ap, "loss": total_loss, "acc": acc})
     print('\ttrain loss:{:.4f}  val ap:{:4f}  val auc:{:4f}'.format(total_loss, ap, auc))
     print('\ttotal time:{:.2f}s sample time:{:.2f}s prep time:{:.2f}s'.format(time_tot, time_sample, time_prep))
 

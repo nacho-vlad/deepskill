@@ -2,7 +2,6 @@ import argparse
 
 parser=argparse.ArgumentParser()
 parser.add_argument('--month', type=str, help='month name')
-parser.add_argument('--model_name', type=str, default='', help='name of stored model')
 args=parser.parse_args()
 
 import os
@@ -41,4 +40,7 @@ clf.fit(X_train, y_train)
 
 y_pred = clf.predict(X_test)
 
-print(classification_report(y_test, y_pred, target_names = ['White', 'Black', 'Draw'], zero_division = 0))
+y_test = le.inverse_transform(y_test)
+y_pred = le.inverse_transform(y_pred)
+
+print(classification_report(y_test, y_pred, digits=4, zero_division = 0))
