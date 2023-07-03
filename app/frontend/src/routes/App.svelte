@@ -94,7 +94,17 @@
     About
   </h2>
   <p>
-    Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+  DeepSkill is a novel skill rating system based on deep learning. 
+  Skill is usually represented by a single numerical rating. This has some advantages,
+  such as interpretability and the existence of a canonical ordering. However, this simplicity 
+  comes at the cost of representational power. No matter how accurate the rating is, 
+  it cannot be a perfect representation of a player’s skill. DeepSkill makes the trade-off 
+  in the other direction and represents skill as a multi-dimensional vector. By treating match
+  history as a graph and leveraging recent advancements in temporal graph learning, 
+  DeepSkill aims to better capture the style and skill of each player compared to the traditional Elo system.
+  </p>
+  <p>
+  More information at: <a href="https://github.com/nacho-vlad/deepskill">nacho-vlad/deepskill</a>
   </p>
   
 </div>

@@ -73,6 +73,10 @@ class GeneralModel(torch.nn.Module):
             return self.edge_classifier(emb.float())
         
         return self.edge_predictor(out, neg_samples=neg_samples)
+    
+    def classify_edge(self, white_emb, black_emb,  game_feats):
+        emb = torch.cat((white_emb, black_emb, game_feats), 1)
+        return self.edge_classifier(emb.cuda().float()).softmax(dim=1).cpu()
 
     def get_emb(self, mfgs):
         if self.memory_param['type'] == 'node':

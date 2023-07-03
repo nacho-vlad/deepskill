@@ -24,7 +24,7 @@ class TemporalGraphModel:
                     sample_param, memory_param, 
                     gnn_param, train_param, 
                     combined=combine_first,
-                    edge_feats= 2 if supervised else None
+                    game_feats=2 if supervised else None
                 ).cuda()
         mailbox = MailBox(memory_param, g['indptr'].shape[0] - 1, gnn_dim_edge) if memory_param['type'] != 'none' else None
         
@@ -107,6 +107,17 @@ class TemporalGraphModel:
         with torch.no_grad():
             ret = self.model.get_emb(mfgs)
         return ret.detach().cpu()
+    
+    def get_prediction(self, white_node, black_node, time_control):
+        
+        root_nodes = np.array([white_node, black_node])
+        ts = np.repeat(self.timestamps().max(), len(root_nodes))
+        node_embs = self.get_node_emb(root_nodes, ts)
+        white_emb = node_embs[0:1, :]
+        black_emb = node_embs[1:2, :]
+        
+        game_feats = torch.tensor([[time_control[0]*60/1200, time_control[1]/10]])
+        return self.model.classify_edge(white_emb, black_emb, game_feats).tolist()[0]
 
     def graph(self):
         return self.df, self.edge_feats
